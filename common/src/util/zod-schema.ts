@@ -1,4 +1,4 @@
-import z from 'zod/v4'
+import z from 'zod'
 
 /**
  * Convert a Zod4 schema to JSON string representation.

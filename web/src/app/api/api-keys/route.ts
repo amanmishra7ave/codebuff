@@ -5,7 +5,7 @@ import * as schema from '@codebuff/internal/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import type { NextRequest } from 'next/server'
 

@@ -1,4 +1,4 @@
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import { MAX_AGENT_STEPS_DEFAULT } from '../constants/agents'
 

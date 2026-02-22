@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach } from 'bun:test'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import { initialSessionState } from '../run-state'
 

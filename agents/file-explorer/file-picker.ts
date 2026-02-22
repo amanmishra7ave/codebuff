@@ -1,5 +1,3 @@
-
-import { publisher } from '../constants'
 import {
   PLACEHOLDER,
   type SecretAgentDefinition,
@@ -13,24 +11,16 @@ export const createFilePicker = (
   mode: FilePickerMode,
 ): Omit<SecretAgentDefinition, 'id'> => {
   const isMax = mode === 'max'
-  const model = isMax ? 'x-ai/grok-4.1-fast' : 'google/gemini-2.5-flash-lite'
 
   return {
     displayName: 'Fletcher the File Fetcher',
-    publisher,
-    model,
-    reasoningOptions: {
-      enabled: false,
-      effort: 'low',
-      exclude: false,
-    },
+    model: 'deepseek-coder',
     spawnerPrompt:
-      'Spawn to find relevant files in a codebase related to the prompt. Outputs up to 12 file paths with short summaries for each file. Cannot do string searches on the codebase, but does a fuzzy search. Unless you know which directories are relevant, omit the directories parameter. This agent is extremely effective at finding files in the codebase that could be relevant to the prompt.',
+      'Spawn to find relevant files in a codebase related to the prompt. Outputs up to 12 file paths with short summaries for each file.',
     inputSchema: {
       prompt: {
         type: 'string',
-        description:
-          'A description of the files you need to find. Be more broad for better results: instead of "Find x file" say "Find x file and related files". This agent is designed to help you find several files that could be relevant to the prompt.',
+        description: 'A description of the files you need to find.',
       },
       params: {
         type: 'object' as const,
@@ -51,12 +41,7 @@ export const createFilePicker = (
     spawnableAgents: ['file-lister'],
 
     systemPrompt: `You are an expert at finding relevant files in a codebase. ${PLACEHOLDER.FILE_TREE_PROMPT}`,
-    instructionsPrompt: `Instructions:
-Provide an extremely short report of the locations in the codebase that could be helpful. Focus on the files that are most relevant to the user prompt.
-In your report, please give a very concise analysis that includes the full paths of files that are relevant and (extremely briefly) how they could be useful.
-
-Do not use any further tools or spawn any further agents.
-  `.trim(),
+    instructionsPrompt: `Instructions: Provide an extremely short report of the locations in the codebase that could be helpful. Focus on the files that are most relevant to the user prompt.`.trim(),
 
     handleSteps: isMax ? handleStepsMax : handleStepsDefault,
   }
@@ -82,7 +67,6 @@ const handleStepsDefault: SecretAgentDefinition['handleSteps'] = function* ({
 
   const spawnResults = extractSpawnResults(fileListerResults)
 
-  // Collect paths from all agents and deduplicate
   const allPaths = new Set<string>()
   let hasAnyResults = false
 
@@ -184,7 +168,6 @@ const handleStepsMax: SecretAgentDefinition['handleSteps'] = function* ({
 
   const spawnResults = extractSpawnResults(fileListerResults)
 
-  // Collect paths from all agents and deduplicate
   const allPaths = new Set<string>()
   let hasAnyResults = false
 

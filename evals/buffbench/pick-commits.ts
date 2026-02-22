@@ -8,7 +8,7 @@ import { models } from '@codebuff/common/old-constants'
 import { userMessage } from '@codebuff/common/util/messages'
 import { promptAiSdkStructured } from '@codebuff/sdk'
 import { mapLimit } from 'async'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import { extractRepoNameFromUrl, setupTestRepo } from './setup-test-repo'
 

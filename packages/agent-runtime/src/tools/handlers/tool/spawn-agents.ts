@@ -18,7 +18,7 @@ import type { Logger } from '@codebuff/common/types/contracts/logger'
 import type { ParamsExcluding } from '@codebuff/common/types/function-params'
 import type { PrintModeEvent } from '@codebuff/common/types/print-mode'
 import type { AgentState } from '@codebuff/common/types/session-state'
-import type { ToolSet } from 'ai'
+
 
 export type SendSubagentChunk = (data: {
   userInputId: string
@@ -41,7 +41,7 @@ export const handleSpawnAgents = (async (
     localAgentTemplates: Record<string, AgentTemplate>
     logger: Logger
     system: string
-    tools?: ToolSet
+    tools?: any
     userId: string | undefined
     userInputId: string
     sendSubagentChunk: SendSubagentChunk

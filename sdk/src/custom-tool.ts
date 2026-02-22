@@ -1,6 +1,6 @@
 import type { ToolName } from '@codebuff/common/tools/constants'
 import type { ToolResultOutput } from '@codebuff/common/types/messages/content-part'
-import type { z } from 'zod/v4'
+import type { z } from 'zod'
 
 export type CustomToolDefinition<
   N extends string = string,

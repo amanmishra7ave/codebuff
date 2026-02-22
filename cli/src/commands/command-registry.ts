@@ -1,13 +1,10 @@
 import open from 'open'
 
-import { handleAdsEnable, handleAdsDisable } from './ads'
 import { useThemeStore } from '../hooks/use-theme'
 import { handleHelpCommand } from './help'
 import { handleImageCommand } from './image'
 import { handleInitializationFlowLocally } from './init'
-import { handleReferralCode } from './referral'
 import { runBashCommand } from './router'
-import { normalizeReferralCode } from './router-utils'
 import { handleUsageCommand } from './usage'
 import { WEBSITE_URL } from '../login/constants'
 import { useChatStore } from '../state/chat-store'
@@ -110,15 +107,6 @@ type CommandWithArgsConfig = {
 /**
  * Factory for commands that do NOT accept arguments.
  * Any args passed are gracefully ignored.
- *
- * @example
- * defineCommand({
- *   name: 'new',
- *   aliases: ['n', 'clear'],
- *   handler: (params) => {
- *     params.setMessages(() => [])
- *   },
- * })
  */
 export function defineCommand(config: CommandConfig): CommandDefinition {
   return {
@@ -135,17 +123,6 @@ export function defineCommand(config: CommandConfig): CommandDefinition {
 /**
  * Factory for commands that accept arguments.
  * The handler receives both params and args.
- *
- * @example
- * defineCommandWithArgs({
- *   name: 'bash',
- *   aliases: ['!'],
- *   handler: (params, args) => {
- *     if (args.trim()) {
- *       runBashCommand(args.trim())
- *     }
- *   },
- * })
  */
 export function defineCommandWithArgs(
   config: CommandWithArgsConfig,
@@ -163,24 +140,6 @@ const clearInput = (params: RouterParams) => {
 }
 
 export const COMMAND_REGISTRY: CommandDefinition[] = [
-  defineCommand({
-    name: 'ads:enable',
-    handler: (params) => {
-      const { postUserMessage } = handleAdsEnable()
-      params.setMessages((prev) => postUserMessage(prev))
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommand({
-    name: 'ads:disable',
-    handler: (params) => {
-      const { postUserMessage } = handleAdsDisable()
-      params.setMessages((prev) => postUserMessage(prev))
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
   defineCommand({
     name: 'help',
     aliases: ['h', '?'],
@@ -227,80 +186,6 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       useChatStore.getState().setInputMode('bash')
       params.saveToHistory(params.inputValue.trim())
       clearInput(params)
-    },
-  }),
-  defineCommandWithArgs({
-    name: 'referral',
-    aliases: ['redeem'],
-    handler: async (params, args) => {
-      const trimmedArgs = args.trim()
-
-      // If user provided a code directly, redeem it immediately
-      if (trimmedArgs) {
-        const code = normalizeReferralCode(trimmedArgs)
-        try {
-          const { postUserMessage } = await handleReferralCode(code)
-          params.setMessages((prev) => [
-            ...prev,
-            getUserMessage(params.inputValue.trim()),
-            ...postUserMessage([]),
-          ])
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error'
-          params.setMessages((prev) => [
-            ...prev,
-            getUserMessage(params.inputValue.trim()),
-            getSystemMessage(`Error redeeming referral code: ${errorMessage}`),
-          ])
-        }
-        params.saveToHistory(params.inputValue.trim())
-        clearInput(params)
-        return
-      }
-
-      // Otherwise enter referral mode
-      useChatStore.getState().setInputMode('referral')
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommand({
-    name: 'login',
-    aliases: ['signin'],
-    handler: (params) => {
-      params.setMessages((prev) => [
-        ...prev,
-        getSystemMessage(
-          "You're already in the app. Use /logout to switch accounts.",
-        ),
-      ])
-      clearInput(params)
-    },
-  }),
-  defineCommand({
-    name: 'logout',
-    aliases: ['signout'],
-    handler: (params) => {
-      params.abortControllerRef.current?.abort()
-      params.stopStreaming()
-      params.setCanProcessQueue(false)
-
-      const { resetLoginState } = useLoginStore.getState()
-      params.logoutMutation.mutate(undefined, {
-        onSettled: () => {
-          resetLoginState()
-          params.setMessages((prev) => [
-            ...prev,
-            getSystemMessage('Logged out.'),
-          ])
-          clearInput(params)
-          setTimeout(() => {
-            params.setUser(null)
-            params.setIsAuthenticated(false)
-          }, 300)
-        },
-      })
     },
   }),
   defineCommand({
@@ -372,24 +257,6 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       }, 0)
     },
   }),
-  defineCommand({
-    name: 'usage',
-    aliases: ['credits'],
-    handler: async (params) => {
-      const { postUserMessage } = await handleUsageCommand()
-      params.setMessages((prev) => postUserMessage(prev))
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
-  defineCommand({
-    name: 'buy-credits',
-    handler: (params) => {
-      open(WEBSITE_URL + '/profile?tab=usage')
-      // Don't save to history.
-      clearInput(params)
-    },
-  }),
   defineCommandWithArgs({
     name: 'image',
     aliases: ['img', 'attach'],
@@ -440,46 +307,6 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
       },
     }),
   ),
-  defineCommandWithArgs({
-    name: 'publish',
-    handler: (params, args) => {
-      const trimmedArgs = args.trim()
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-
-      // If user provided agent ids directly, skip to confirmation step
-      if (trimmedArgs) {
-        const agentIds = trimmedArgs.split(/\s+/).filter(Boolean)
-        return { openPublishMode: true, preSelectAgents: agentIds }
-      }
-
-      // Otherwise open selection UI
-      return { openPublishMode: true }
-    },
-  }),
-  defineCommand({
-    name: 'gpt-5-agent',
-    handler: (params) => {
-      // Insert @ GPT-5 Agent into the input field (UI shortcut, not a real command)
-      params.setInputValue({
-        text: '@GPT-5 Agent ',
-        cursorPosition: '@GPT-5 Agent '.length,
-        lastEditDueToNav: false,
-      })
-      params.inputRef.current?.focus()
-      // Don't save to history - this is just a UI shortcut
-    },
-  }),
-  defineCommand({
-    name: 'connect:claude',
-    aliases: ['claude'],
-    handler: (params) => {
-      // Enter connect:claude mode to show the OAuth banner
-      useChatStore.getState().setInputMode('connect:claude')
-      params.saveToHistory(params.inputValue.trim())
-      clearInput(params)
-    },
-  }),
   defineCommand({
     name: 'history',
     aliases: ['chats'],
@@ -499,7 +326,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
 
       // If user provided review text directly, send it immediately without showing the screen
       if (trimmedArgs) {
-        const reviewPrompt = `@GPT-5 Agent Please review: ${trimmedArgs}`
+        const reviewPrompt = `Please review: ${trimmedArgs}`
         params.sendMessage({
           content: reviewPrompt,
           agentMode: params.agentMode,
@@ -555,7 +382,6 @@ export function findCommand(cmd: string): CommandDefinition | undefined {
 
 /**
  * Creates a dynamic command definition for a skill.
- * When invoked, the skill's content is sent to the agent.
  */
 function createSkillCommand(skillName: string): CommandDefinition {
   return defineCommandWithArgs({

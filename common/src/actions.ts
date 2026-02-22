@@ -1,4 +1,4 @@
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import type { GrantType } from './types/grant'
 import type { MCPConfig } from './types/mcp'

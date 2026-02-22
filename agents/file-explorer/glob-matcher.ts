@@ -1,5 +1,4 @@
 
-import { publisher } from '../constants'
 
 import type { SecretAgentDefinition } from '../types/secret-agent-definition'
 import type { JSONValue } from '@codebuff/common/types/json'
@@ -33,9 +32,8 @@ const globMatcher: SecretAgentDefinition = {
   displayName: 'Glob Matcher',
   spawnerPrompt:
     'Mechanically runs multiple glob pattern matches and returns all matching files',
-  model: 'anthropic/claude-sonnet-4.5',
-  publisher,
-  outputMode: 'structured_output',
+  model: 'deepseek-coder',
+    outputMode: 'structured_output',
   includeMessageHistory: false,
   toolNames: ['glob', 'set_output'],
   spawnableAgents: [],

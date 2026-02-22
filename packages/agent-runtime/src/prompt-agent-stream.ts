@@ -7,8 +7,6 @@ import type { PromptAiSdkStreamFn } from '@codebuff/common/types/contracts/llm'
 import type { Logger } from '@codebuff/common/types/contracts/logger'
 import type { ParamsOf } from '@codebuff/common/types/function-params'
 import type { Message } from '@codebuff/common/types/messages/codebuff-message'
-import type { OpenRouterProviderOptions } from '@codebuff/internal/openrouter-ai-sdk'
-import type { ToolSet } from 'ai'
 
 export const getAgentStreamFromTemplate = (params: {
   agentId?: string
@@ -23,7 +21,7 @@ export const getAgentStreamFromTemplate = (params: {
   runId: string
   signal: AbortSignal
   template: AgentTemplate
-  tools: ToolSet
+  tools: any
   userId: string | undefined
   userInputId: string
 
@@ -86,20 +84,8 @@ export const getAgentStreamFromTemplate = (params: {
     trackEvent,
   }
 
-  if (!aiSdkStreamParams.providerOptions) {
-    aiSdkStreamParams.providerOptions = {}
-  }
-  for (const provider of ['openrouter', 'codebuff'] as const) {
-    if (!aiSdkStreamParams.providerOptions[provider]) {
-      aiSdkStreamParams.providerOptions[provider] = {}
-    }
-    ;(
-      aiSdkStreamParams.providerOptions[provider] as OpenRouterProviderOptions
-    ).reasoning = template.reasoningOptions
-  }
-
-  // Pass agent's provider routing options to SDK
-  aiSdkStreamParams.agentProviderOptions = template.providerOptions
+    // Pass agent's provider routing options to SDK
+    ; (aiSdkStreamParams as any).agentProviderOptions = template.providerOptions
 
   return promptAiSdkStream(aiSdkStreamParams)
 }

@@ -2,7 +2,7 @@ import { toolParams } from './list'
 import { $getToolCallString } from './params/utils'
 
 import type { ToolName } from './constants'
-import type z from 'zod/v4'
+import type z from 'zod'
 
 export function getToolCallString<T extends ToolName | (string & {})>(
   toolName: T,

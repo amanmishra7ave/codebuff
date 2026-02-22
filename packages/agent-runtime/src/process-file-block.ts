@@ -307,7 +307,7 @@ Please output just the SEARCH/REPLACE blocks like this:
   const promptResult = await promptAiSdk({
     ...params,
     messages: [userMessage(prompt)],
-    model: models.o4mini,
+    model: models.deepseekCoder,
   })
 
   if (promptResult.aborted) {

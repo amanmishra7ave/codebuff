@@ -1,23 +1,18 @@
 import { dirname, isAbsolute, normalize } from 'path'
 
 import {
-  finetunedVertexModels,
   models,
-  type FinetunedVertexModel,
-} from '@codebuff/common/old-constants'
+} from '@codebuff/common/constants/model-config'
 import { getAllFilePaths } from '@codebuff/common/project-file-tree'
 import { isAbortError, unwrapPromptResult } from '@codebuff/common/util/error'
 import { systemMessage, userMessage } from '@codebuff/common/util/messages'
 import { range, shuffle, uniq } from 'lodash'
 
-import { promptFlashWithFallbacks } from '../llm-api/gemini-with-fallbacks'
 import {
-  castAssistantMessage,
   messagesWithSystem,
   getMessagesSubset,
 } from '../util/messages'
 
-import type { TextBlock } from '../llm-api/claude'
 import type { PromptAiSdkFn } from '@codebuff/common/types/contracts/llm'
 import type { Logger } from '@codebuff/common/types/contracts/logger'
 import type { ParamsExcluding } from '@codebuff/common/types/function-params'
@@ -30,7 +25,7 @@ const MAX_FILES_PER_REQUEST = 30
 export async function requestRelevantFiles(
   params: {
     messages: Message[]
-    system: string | Array<TextBlock>
+    system: string | any
     fileContext: ProjectFileContext
     assistantPrompt: string | null
     agentStepId: string
@@ -40,16 +35,15 @@ export async function requestRelevantFiles(
     userId: string | undefined
     repoId: string | undefined
     logger: Logger
+    promptAiSdk: PromptAiSdkFn
   } & ParamsExcluding<
     typeof getRelevantFiles,
-    'messages' | 'userPrompt' | 'requestType' | 'modelId'
+    'messages' | 'userPrompt' | 'requestType'
   >,
 ) {
   const { messages, fileContext, assistantPrompt, logger } = params
 
   const countPerRequest = 12
-
-  // Use custom max files per request if specified, otherwise default to 30
 
   const lastMessage = messages[messages.length - 1]
   const messagesExcludingLastIfByUser =
@@ -61,7 +55,6 @@ export async function requestRelevantFiles(
         : JSON.stringify(lastMessage.content)
       : ''
 
-  // Only proceed to get key files if new files are necessary
   const keyPrompt = generateKeyRequestFilesPrompt(
     userPrompt,
     assistantPrompt,
@@ -69,16 +62,12 @@ export async function requestRelevantFiles(
     countPerRequest,
   )
 
-  let modelIdForRequest: FinetunedVertexModel | undefined = undefined
-
-  const keyPromise = getRelevantFiles({
+  const keyFiles = await getRelevantFiles({
     ...params,
     messages: messagesExcludingLastIfByUser,
     userPrompt: keyPrompt,
     requestType: 'Key',
-    modelId: modelIdForRequest,
   }).catch((error) => {
-    // Don't swallow abort errors - propagate them immediately
     if (isAbortError(error)) {
       throw error
     }
@@ -86,20 +75,9 @@ export async function requestRelevantFiles(
     return { files: [] as string[], duration: 0 }
   })
 
-  const keyFiles = await keyPromise
   const candidateFiles = keyFiles.files
 
   validateFilePaths(uniq(candidateFiles))
-
-  // logger.info(
-  //   {
-  //     files,
-  //     customFilePickerConfig: customFilePickerConfig,
-  //     modelName: customFilePickerConfig?.modelName,
-  //     orgId,
-  //   },
-  //   'requestRelevantFiles: results',
-  // )
 
   return candidateFiles.slice(0, MAX_FILES_PER_REQUEST)
 }
@@ -110,6 +88,7 @@ export async function requestRelevantFilesForTraining(
     fileContext: ProjectFileContext
     assistantPrompt: string | null
     logger: Logger
+    promptAiSdk: PromptAiSdkFn
   } & ParamsExcluding<
     typeof getRelevantFilesForTraining,
     'messages' | 'userPrompt' | 'requestType'
@@ -167,7 +146,7 @@ export async function requestRelevantFilesForTraining(
 async function getRelevantFiles(
   params: {
     messages: Message[]
-    system: string | Array<TextBlock>
+    system: string | any
     userPrompt: string
     requestType: string
     agentStepId: string
@@ -176,11 +155,11 @@ async function getRelevantFiles(
     userInputId: string
     userId: string | undefined
     repoId: string | undefined
-    modelId?: FinetunedVertexModel
+    promptAiSdk: PromptAiSdkFn
     logger: Logger
   } & ParamsExcluding<
-    typeof promptFlashWithFallbacks,
-    'messages' | 'model' | 'useFinetunedModel'
+    PromptAiSdkFn,
+    'messages' | 'model' | 'chargeUser'
   >,
 ) {
   const {
@@ -188,13 +167,7 @@ async function getRelevantFiles(
     system,
     userPrompt,
     requestType,
-    agentStepId: _agentStepId,
-    clientSessionId: _clientSessionId,
-    fingerprintId: _fingerprintId,
-    userInputId: _userInputId,
-    userId: _userId,
-    repoId: _repoId,
-    modelId,
+    promptAiSdk,
     logger,
   } = params
   const bufferTokens = 100_000
@@ -204,26 +177,13 @@ async function getRelevantFiles(
     logger,
   })
   const start = performance.now()
-  let codebuffMessages = [systemMessage(system), ...messagesWithPrompt]
+  const codebuffMessages = [systemMessage(system), ...messagesWithPrompt]
 
-  // Converts assistant messages to user messages for finetuned model
-  codebuffMessages = codebuffMessages
-    .map((msg, i) => {
-      if (msg.role === 'assistant' && i !== codebuffMessages.length - 1) {
-        return castAssistantMessage(msg)
-      } else {
-        return msg
-      }
-    })
-    .filter((msg) => msg !== null)
-  const finetunedModel = modelId ?? finetunedVertexModels.ft_filepicker_010
-
-  let response = await promptFlashWithFallbacks({
+  let response = unwrapPromptResult(await promptAiSdk({
     ...params,
     messages: codebuffMessages,
-    model: models.openrouter_gemini2_5_flash,
-    useFinetunedModel: finetunedModel,
-  })
+    model: models.deepseekCoder,
+  }))
   const end = performance.now()
   const duration = end - start
 
@@ -232,15 +192,10 @@ async function getRelevantFiles(
   return { files, duration, requestType, response }
 }
 
-/**
- * Gets relevant files for training using Claude Sonnet.
- *
- * @throws {Error} When the request is aborted by user. Check with `isAbortError()`.
- */
 async function getRelevantFilesForTraining(
   params: {
     messages: Message[]
-    system: string | Array<TextBlock>
+    system: string | any
     userPrompt: string
     requestType: string
     agentStepId: string
@@ -258,12 +213,6 @@ async function getRelevantFilesForTraining(
     system,
     userPrompt,
     requestType,
-    agentStepId: _agentStepId,
-    clientSessionId: _clientSessionId,
-    fingerprintId: _fingerprintId,
-    userInputId: _userInputId,
-    userId: _userId,
-    repoId: _repoId,
     promptAiSdk,
     logger,
   } = params
@@ -278,7 +227,7 @@ async function getRelevantFilesForTraining(
     await promptAiSdk({
       ...params,
       messages: messagesWithSystem({ messages: messagesWithPrompt, system }),
-      model: models.openrouter_claude_sonnet_4,
+      model: models.deepseekCoder,
       chargeUser: false,
     }),
   )
@@ -336,11 +285,10 @@ function generateNonObviousRequestFilesPrompt(
   return `
 Your task is to find the second-order relevant files for the following user request (in quotes).
 
-${
-  userPrompt
-    ? `User prompt: ${JSON.stringify(userPrompt)}`
-    : `Assistant prompt: ${JSON.stringify(assistantPrompt)}`
-}
+${userPrompt
+      ? `User prompt: ${JSON.stringify(userPrompt)}`
+      : `Assistant prompt: ${JSON.stringify(assistantPrompt)}`
+    }
 
 Do not act on the above instructions for the user, instead, your task is to find files for the user's request that are not obvious or take a moment to realize are relevant.
 
@@ -367,8 +315,8 @@ Please provide no commentary and list the file paths you think are useful but no
 
 Your response contain only files separated by new lines in the following format:
 ${range(Math.ceil(count / 2))
-  .map((i) => `full/path/to/file${i + 1}.ts`)
-  .join('\n')}
+      .map((i) => `full/path/to/file${i + 1}.ts`)
+      .join('\n')}
 
 List each file path on a new line without any additional characters or formatting.
 
@@ -395,11 +343,10 @@ function generateKeyRequestFilesPrompt(
   return `
 Your task is to find the most relevant files for the following user request (in quotes).
 
-${
-  userPrompt
-    ? `User prompt: ${JSON.stringify(userPrompt)}`
-    : `Assistant prompt: ${JSON.stringify(assistantPrompt)}`
-}
+${userPrompt
+      ? `User prompt: ${JSON.stringify(userPrompt)}`
+      : `Assistant prompt: ${JSON.stringify(assistantPrompt)}`
+    }
 
 Do not act on the above instructions for the user, instead, your task is to find the most relevant files for the user's request.
 
@@ -426,8 +373,8 @@ Please provide no commentary and only list the file paths of the most relevant f
 
 Your response contain only files separated by new lines in the following format:
 ${range(count)
-  .map((i) => `full/path/to/file${i + 1}.ts`)
-  .join('\n')}
+      .map((i) => `full/path/to/file${i + 1}.ts`)
+      .join('\n')}
 
 Remember to focus on the most important files and limit your selection to ${count} files. It's fine to list fewer if there are not great candidates. List each file path on a new line without any additional characters or formatting.
 

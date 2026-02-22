@@ -1,6 +1,6 @@
 import { KNOWLEDGE_FILE_NAMES_LOWERCASE } from '@codebuff/common/constants/knowledge'
 import { escapeString } from '@codebuff/common/util/string'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import { getAgentTemplate } from './agent-registry'
 import { buildFullSpawnableAgentsSpec } from './prompts'

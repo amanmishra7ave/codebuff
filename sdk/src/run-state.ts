@@ -13,7 +13,7 @@ import {
 import { getInitialSessionState } from '@codebuff/common/types/session-state'
 import { getErrorObject } from '@codebuff/common/util/error'
 import { cloneDeep } from 'lodash'
-import z from 'zod/v4'
+import z from 'zod'
 
 import { loadLocalAgents } from './agents/load-agents'
 import { loadSkills } from './skills/load-skills'
@@ -433,10 +433,10 @@ export async function initialSessionState(
   }
   if (!logger) {
     logger = {
-      debug: () => {},
-      info: () => {},
-      warn: () => {},
-      error: () => {},
+      debug: () => { },
+      info: () => { },
+      warn: () => { },
+      error: () => { },
     }
   }
 
@@ -474,11 +474,11 @@ export async function initialSessionState(
   const gitChanges = cwd
     ? await getGitChanges({ cwd, spawn, logger })
     : {
-        status: '',
-        diff: '',
-        diffCached: '',
-        lastCommitMessages: '',
-      }
+      status: '',
+      diff: '',
+      diffCached: '',
+      lastCommitMessages: '',
+    }
 
   // Load user knowledge files from home directory and merge with any provided ones
   const homeKnowledgeFiles = await loadUserKnowledgeFiles({ fs, logger })

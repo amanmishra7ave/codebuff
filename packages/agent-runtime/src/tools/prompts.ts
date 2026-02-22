@@ -6,7 +6,7 @@ import { buildArray } from '@codebuff/common/util/array'
 import { formatAvailableSkillsXml } from '@codebuff/common/util/skills'
 import { pluralize } from '@codebuff/common/util/string'
 import { cloneDeep } from 'lodash'
-import z from 'zod/v4'
+import z from 'zod'
 import { convertJsonSchemaToZod } from 'zod-from-json-schema'
 
 import type { ToolName } from '@codebuff/common/tools/constants'
@@ -15,7 +15,6 @@ import type {
   CustomToolDefinitions,
   customToolDefinitionsSchema,
 } from '@codebuff/common/util/file'
-import type { ToolSet } from 'ai'
 
 /**
  * Ensures the inputSchema is a Zod schema. If it's a JSON Schema object
@@ -326,14 +325,14 @@ ${toolDescriptionsList.join('\n\n')}
 export async function getToolSet(params: {
   toolNames: string[]
   additionalToolDefinitions: () => Promise<CustomToolDefinitions>
-  agentTools: ToolSet
+  agentTools: any
   skills: SkillsMap
-}): Promise<ToolSet> {
+}): Promise<any> {
   const { toolNames, additionalToolDefinitions, agentTools, skills } = params
 
   // Generate available skills XML for the skill tool description
   const availableSkillsXml = formatAvailableSkillsXml(skills)
-  const toolSet: ToolSet = {}
+  const toolSet: any = {}
   for (const toolName of toolNames) {
     if (toolName in toolParams) {
       const toolDef = toolParams[toolName as ToolName]
@@ -377,7 +376,7 @@ export async function getToolSet(params: {
     toolSet[toolName] = {
       ...clonedDef,
       inputSchema: safeSchema,
-    } as (typeof toolSet)[string]
+    }
   }
 
   // Add agent tools (agents as direct tool calls)

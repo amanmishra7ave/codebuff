@@ -90,4 +90,3 @@ export {
   promptAiSdkStream,
   promptAiSdkStructured,
 } from './impl/llm'
-export { resetClaudeOAuthRateLimit } from './impl/model-provider'

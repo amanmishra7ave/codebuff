@@ -5,7 +5,7 @@ import { existsSync, readdirSync, readFileSync, rmSync } from 'fs'
 import { join, resolve } from 'path'
 import { createInterface } from 'readline'
 
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 // Validation schemas
 const WorktreeArgsSchema = z.object({

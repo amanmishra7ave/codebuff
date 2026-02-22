@@ -1,5 +1,3 @@
-import { publisher } from '../../constants'
-
 import type { AgentStepContext, ToolCall } from '../../types/agent-definition'
 import type { SecretAgentDefinition } from '../../types/secret-agent-definition'
 
@@ -10,11 +8,10 @@ import type { SecretAgentDefinition } from '../../types/secret-agent-definition'
  */
 export function createMultiPromptEditor(): Omit<SecretAgentDefinition, 'id'> {
   return {
-    publisher,
-    model: 'anthropic/claude-opus-4.5',
+    model: 'deepseek-coder',
     displayName: 'Multi-Prompt Editor',
     spawnerPrompt:
-      'Edits code by spawning multiple implementor agents with different strategy prompts, selects the best implementation, and applies the changes. It also returns further suggested improvements which you should take seriously and act on. Pass as input an array of short prompts specifying different implementation approaches or strategies. Make sure to read any files intended to be edited before spawning this agent.',
+      'Edits code by spawning multiple implementor agents with different strategy prompts, selects the best implementation, and applies the changes. Pass as input an array of short prompts specifying different implementation approaches or strategies.',
 
     includeMessageHistory: true,
     inheritParentSystemPrompt: true,
@@ -28,8 +25,7 @@ export function createMultiPromptEditor(): Omit<SecretAgentDefinition, 'id'> {
     ],
     spawnableAgents: [
       'best-of-n-selector2',
-      'editor-implementor-opus',
-      'editor-implementor-gpt-5',
+      'editor-implementor',
     ],
 
     inputSchema: {
@@ -40,7 +36,7 @@ export function createMultiPromptEditor(): Omit<SecretAgentDefinition, 'id'> {
             type: 'array',
             items: { type: 'string' },
             description:
-              'Array of short prompts, each specifying a slightly different implementation strategy or approach. Example: ["use a cache for the data", "don\t cache anything", "make the minimal possible changes", "modularize your solution by creating new files"]',
+              'Array of short prompts, each specifying a slightly different implementation strategy or approach.',
           },
         },
         required: ['prompts'],
@@ -64,13 +60,12 @@ function* handleStepsMultiPrompt({
     yield {
       toolName: 'set_output',
       input: {
-        error: 'No prompts provided. Please pass an array of strategy prompts.',
+        error: 'No prompts provided.',
       },
     } satisfies ToolCall<'set_output'>
     return
   }
 
-  // Only keep messages up to just before the last user role message (skips input prompt, instructions prompt).
   const { messageHistory: initialMessageHistory } = agentState
   let userMessageIndex = initialMessageHistory.length
 
@@ -91,14 +86,13 @@ function* handleStepsMultiPrompt({
     includeToolCall: false,
   } satisfies ToolCall<'set_messages'>
 
-  // Spawn one opus implementor per prompt
+  // Spawn one implementor per prompt
   const implementorAgents: { agent_type: string; prompt?: string }[] =
     prompts.map((prompt) => ({
-      agent_type: 'editor-implementor-opus',
+      agent_type: 'editor-implementor',
       prompt: `Strategy: ${prompt}`,
     }))
 
-  // Spawn all implementor agents
   const { toolResult: implementorResults } = yield {
     toolName: 'spawn_agents',
     input: {
@@ -107,14 +101,12 @@ function* handleStepsMultiPrompt({
     includeToolCall: false,
   } satisfies ToolCall<'spawn_agents'>
 
-  // Extract spawn results - each is structured output with { toolCalls, toolResults, unifiedDiffs }
   const spawnedImplementations = extractSpawnResults<{
     toolCalls: { toolName: string; input: any }[]
     toolResults: any[]
     unifiedDiffs: string
   }>(implementorResults)
 
-  // Build implementations for selector using the unified diffs
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
   const implementations = spawnedImplementations.map((result, index) => {
     if (!result || (typeof result === 'object' && 'errorMessage' in result)) {
@@ -134,7 +126,7 @@ function* handleStepsMultiPrompt({
     }
   })
 
-  // Spawn selector with implementations (showing unified diffs for review)
+  // Spawn selector
   const { toolResult: selectorResult } = yield {
     toolName: 'spawn_agents',
     input: {
@@ -163,7 +155,7 @@ function* handleStepsMultiPrompt({
   if (!selectorOutput || !('implementationId' in selectorOutput)) {
     yield {
       toolName: 'set_output',
-      input: { error: 'Selector failed to return an implementation' },
+      input: { error: 'Selector failed' },
     } satisfies ToolCall<'set_output'>
     return
   }
@@ -183,10 +175,8 @@ function* handleStepsMultiPrompt({
     return
   }
 
-  // Apply the chosen implementation's tool calls as real edits
   const appliedToolResults: any[] = []
   for (const toolCall of chosenImplementation.toolCalls) {
-    // Convert propose_* tool calls to real edit tool calls
     const realToolName =
       toolCall.toolName === 'propose_str_replace'
         ? 'str_replace'
@@ -205,24 +195,17 @@ function* handleStepsMultiPrompt({
     }
   }
 
-  // Extract suggested improvements from selector output
-  const { reason, suggestedImprovements } = selectorOutput
-
-  // Set output with the applied results and suggested improvements
   yield {
     toolName: 'set_output',
     input: {
       chosenStrategy: chosenImplementation.strategy,
-      reason,
+      reason: selectorOutput.reason,
       toolResults: appliedToolResults,
-      suggestedImprovements,
+      suggestedImprovements: selectorOutput.suggestedImprovements,
     },
     includeToolCall: false,
   } satisfies ToolCall<'set_output'>
 
-  /**
-   * Extracts the array of subagent results from spawn_agents tool output.
-   */
   function extractSpawnResults<T>(results: any[] | undefined): T[] {
     if (!results || results.length === 0) return []
 

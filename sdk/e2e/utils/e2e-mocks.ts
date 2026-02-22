@@ -1,7 +1,7 @@
 import { models } from '@codebuff/common/old-constants'
 import { promptSuccess } from '@codebuff/common/util/error'
 import { spyOn } from 'bun:test'
-import z from 'zod/v4'
+import z from 'zod'
 
 import { CodebuffClient } from '../../src/client'
 import * as databaseModule from '../../src/impl/database'

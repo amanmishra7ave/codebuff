@@ -1,4 +1,4 @@
-import z from 'zod/v4'
+import z from 'zod'
 
 import { publishedTools } from './constants'
 import { toolParams } from './list'

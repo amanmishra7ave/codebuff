@@ -1,4 +1,3 @@
-import { publisher } from './constants'
 
 import type { AgentDefinition, ToolCall } from './types/agent-definition'
 import type {
@@ -265,9 +264,8 @@ export function summarizeToolCall(
 
 const definition: AgentDefinition = {
   id: 'context-pruner',
-  publisher,
-  displayName: 'Context Pruner',
-  model: 'openai/gpt-5-mini',
+    displayName: 'Context Pruner',
+  model: 'deepseek-coder',
 
   spawnerPrompt: `Spawn this agent between steps to prune context, summarizing the conversation into a condensed format when context exceeds the limit.`,
 

@@ -1,7 +1,7 @@
 import * as os from 'os'
 import * as path from 'path'
 
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import type { CodebuffFileSystem } from '../types/filesystem'
 import type { SkillsMap } from '../types/skill'

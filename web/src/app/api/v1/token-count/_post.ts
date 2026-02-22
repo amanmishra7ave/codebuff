@@ -6,7 +6,7 @@ import {
 import { getErrorObject } from '@codebuff/common/util/error'
 import { env } from '@codebuff/internal/env'
 import { NextResponse } from 'next/server'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import { parseJsonBody, requireUserFromApiKey } from '../_helpers'
 

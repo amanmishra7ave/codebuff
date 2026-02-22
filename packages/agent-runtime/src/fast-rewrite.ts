@@ -1,23 +1,16 @@
-import { models, openaiModels } from '@codebuff/common/old-constants'
 import { buildArray } from '@codebuff/common/util/array'
 import { unwrapPromptResult } from '@codebuff/common/util/error'
 import { parseMarkdownCodeBlock } from '@codebuff/common/util/file'
 import { assistantMessage, userMessage } from '@codebuff/common/util/messages'
-import { generateCompactId, hasLazyEdit } from '@codebuff/common/util/string'
-
-import { promptFlashWithFallbacks } from './llm-api/gemini-with-fallbacks'
-import { promptRelaceAI } from './llm-api/relace-api'
+import { generateCompactId } from '@codebuff/common/util/string'
 
 import type { CodebuffToolMessage } from '@codebuff/common/tools/list'
 import type { PromptAiSdkFn } from '@codebuff/common/types/contracts/llm'
 import type { Logger } from '@codebuff/common/types/contracts/logger'
-import type { ParamsExcluding } from '@codebuff/common/types/function-params'
 import type { Message } from '@codebuff/common/types/messages/codebuff-message'
 
 /**
- * Rewrites file content using Relace AI with fallback to OpenAI.
- *
- * @throws {Error} When the request is aborted by user. Check with `isAbortError()`.
+ * Rewrites file content using local LLM.
  */
 export async function fastRewrite(
   params: {
@@ -26,43 +19,24 @@ export async function fastRewrite(
     filePath: string
     userMessage: string | undefined
     logger: Logger
-  } & ParamsExcluding<typeof promptRelaceAI, 'initialCode'> &
-    ParamsExcluding<typeof rewriteWithOpenAI, 'oldContent'>,
+    promptAiSdk: PromptAiSdkFn
+  } & any,
 ) {
-  const { initialContent, editSnippet, filePath, userMessage, logger } = params
-  const relaceStartTime = Date.now()
+  const { initialContent, editSnippet, filePath, logger } = params
+  const startTime = Date.now()
   const messageId = generateCompactId('cb-')
-  let response = await promptRelaceAI({
-    ...params,
-    initialCode: initialContent,
-  })
-  const relaceDuration = Date.now() - relaceStartTime
 
-  // Check if response still contains lazy edits
-  if (
-    hasLazyEdit(editSnippet) &&
-    !hasLazyEdit(initialContent) &&
-    hasLazyEdit(response)
-  ) {
-    const relaceResponse = response
-    response = await rewriteWithOpenAI({
-      ...params,
-      oldContent: initialContent,
-    })
-    logger.debug(
-      { filePath, relaceResponse, openaiResponse: response, messageId },
-      `Relace output contained lazy edits, trying GPT-4o-mini ${filePath}`,
-    )
-  }
+  const response = await rewriteWithLocal(params)
+
+  const duration = Date.now() - startTime
 
   logger.debug(
     {
       initialContent,
       editSnippet,
       response,
-      userMessage,
       messageId,
-      relaceDuration,
+      duration,
     },
     `fastRewrite of ${filePath}`,
   )
@@ -71,19 +45,18 @@ export async function fastRewrite(
 }
 
 /**
- * Rewrites file content using OpenAI's o3-mini model when Gemini Flash output limit is exceeded.
- * Gemini flash can only output 8k tokens, openai models can do at least 16k tokens.
- *
- * @throws {Error} When the request is aborted by user. Check with `isAbortError()`.
+ * Rewrites file content using local LLM.
  */
-export async function rewriteWithOpenAI(
+async function rewriteWithLocal(
   params: {
-    oldContent: string
+    initialContent?: string
+    oldContent?: string
     editSnippet: string
     promptAiSdk: PromptAiSdkFn
-  } & ParamsExcluding<PromptAiSdkFn, 'messages' | 'model'>,
+  } & any,
 ): Promise<string> {
-  const { oldContent, editSnippet, promptAiSdk } = params
+  const oldContent = params.initialContent ?? params.oldContent
+  const { editSnippet, promptAiSdk } = params
   const prompt = `You are an expert programmer tasked with implementing changes to a file. Please rewrite the file to implement the changes shown in the edit snippet, while preserving the original formatting and behavior of unchanged parts.
 
 Old file content:
@@ -111,20 +84,19 @@ Please output just the complete updated file content with the edit applied and n
         await promptAiSdk({
           ...params,
           messages: [userMessage(prompt), assistantMessage('```\n')],
-          model: openaiModels.o3mini,
+          model: 'deepseek-coder',
         }),
       ),
     ) + '\n'
   )
 }
 
+export async function rewriteWithOpenAI(params: any): Promise<string> {
+  return rewriteWithLocal(params)
+}
+
 /**
- * Checks if Claude forgot to add "... existing code ..." placeholders.
- *
- * This handles a specific case where Claude sketches an update to a single function,
- * but forgets to add ... existing code ... above and below the function.
- *
- * @throws {Error} When the request is aborted by user. Check with `isAbortError()`.
+ * Checks if assistant forgot to add placeholders.
  */
 export const shouldAddFilePlaceholders = async (
   params: {
@@ -134,7 +106,8 @@ export const shouldAddFilePlaceholders = async (
     messageHistory: Message[]
     fullResponse: string
     logger: Logger
-  } & ParamsExcluding<typeof promptFlashWithFallbacks, 'messages' | 'model'>,
+    promptAiSdk: PromptAiSdkFn
+  } & any,
 ) => {
   const {
     filePath,
@@ -143,29 +116,8 @@ export const shouldAddFilePlaceholders = async (
     messageHistory,
     fullResponse,
     logger,
+    promptAiSdk
   } = params
-  const fileWasPreviouslyEdited = messageHistory
-    .filter(
-      (
-        m,
-      ): m is CodebuffToolMessage<
-        'create_plan' | 'str_replace' | 'write_file'
-      > => {
-        return (
-          m.role === 'tool' &&
-          (m.toolName === 'create_plan' ||
-            m.toolName === 'str_replace' ||
-            m.toolName === 'write_file')
-        )
-      },
-    )
-    .some((m) => m.content[0].value.file === filePath)
-  if (!fileWasPreviouslyEdited) {
-    // If Claude hasn't edited this file before, it's almost certainly not a local-only change.
-    // Usually, it's only when Claude is editing a function for a second or third time that
-    // it forgets to add ${EXISTING_CODE_MARKER}s above and below the function.
-    return false
-  }
 
   const prompt = `
 Here's the original file:
@@ -182,7 +134,7 @@ ${rewrittenNewContent}
 
 Consider the above information and conversation and answer the following question.
 Most likely, the assistant intended to replace the entire original file with the new content. If so, write "REPLACE_ENTIRE_FILE".
-In other cases, the assistant forgot to include the rest of the file and just wrote in one section of the file to be edited. Typically this happens if the new content focuses on the change of a single function or section of code with the intention to edit just this section, but keep the rest of the file unchanged. For example, if the new content is just a single function whereas the original file has multiple functions, and the conversation does not imply that the other functions should be deleted.
+In other cases, the assistant forgot to include the rest of the file and just wrote in one section of the file to be edited. Typically this happens if the new content focuses on the change of a single function or section of code with the intention to edit just this section, but keep the rest of the file unchanged.
 If you believe this is the scenario, please write "LOCAL_CHANGE_ONLY". Otherwise, write "REPLACE_ENTIRE_FILE".
 Do not write anything else.
 `.trim()
@@ -194,18 +146,17 @@ Do not write anything else.
     fullResponse && assistantMessage(fullResponse),
     userMessage(prompt),
   )
-  const response = await promptFlashWithFallbacks({
+  const response = unwrapPromptResult(await promptAiSdk({
     ...params,
     messages,
-    model: models.openrouter_gemini2_5_flash,
-  })
+    model: 'deepseek-coder' as any,
+  })) as string
+
   const shouldAddPlaceholderComments = response.includes('LOCAL_CHANGE_ONLY')
   logger.debug(
     {
       response,
       shouldAddPlaceholderComments,
-      oldContent,
-      rewrittenNewContent,
       filePath,
       duration: Date.now() - startTime,
     },

@@ -1,4 +1,4 @@
-import z from 'zod/v4'
+import z from 'zod'
 
 import { terminalCommandOutputSchema } from './run-terminal-command'
 import { $getNativeToolCallExampleString, jsonToolResultSchema } from '../utils'

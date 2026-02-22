@@ -1,4 +1,3 @@
-import { publisher } from './constants'
 
 import type {
   AgentDefinition,
@@ -7,8 +6,7 @@ import type {
 
 const commander: AgentDefinition = {
   id: 'commander',
-  publisher,
-  model: 'anthropic/claude-haiku-4.5',
+  model: 'deepseek-coder',
   displayName: 'Commander',
   spawnerPrompt:
     'Runs a single terminal command and describes its output using an LLM based on what information is requested.',

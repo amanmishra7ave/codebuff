@@ -1,4 +1,3 @@
-import { publisher } from '../constants'
 
 import type { SecretAgentDefinition } from '../types/secret-agent-definition'
 import type { JSONObject, JSONValue } from '../types/util-types'
@@ -30,9 +29,8 @@ const directoryLister: SecretAgentDefinition = {
   displayName: 'Directory Lister',
   spawnerPrompt:
     'Mechanically lists multiple directories and returns their contents',
-  model: 'anthropic/claude-sonnet-4.5',
-  publisher,
-  includeMessageHistory: false,
+  model: 'deepseek-coder',
+    includeMessageHistory: false,
   outputMode: 'structured_output',
   toolNames: ['list_directory', 'set_output'],
   spawnableAgents: [],

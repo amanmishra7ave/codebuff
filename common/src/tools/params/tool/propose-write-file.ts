@@ -1,4 +1,4 @@
-import z from 'zod/v4'
+import z from 'zod'
 
 import { proposeUpdateFileResultSchema } from './propose-str-replace'
 import { $getNativeToolCallExampleString, jsonToolResultSchema } from '../utils'

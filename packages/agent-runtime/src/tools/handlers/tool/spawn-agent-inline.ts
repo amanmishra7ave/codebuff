@@ -19,7 +19,7 @@ import type { ParamsExcluding } from '@codebuff/common/types/function-params'
 import type { PrintModeEvent } from '@codebuff/common/types/print-mode'
 import type { AgentState } from '@codebuff/common/types/session-state'
 import type { ProjectFileContext } from '@codebuff/common/util/file'
-import type { ToolSet } from 'ai'
+
 
 type ToolName = 'spawn_agent_inline'
 export const handleSpawnAgentInline = (async (
@@ -35,7 +35,7 @@ export const handleSpawnAgentInline = (async (
     localAgentTemplates: Record<string, AgentTemplate>
     logger: Logger
     system: string
-    tools: ToolSet
+    tools: any
     userId: string | undefined
     userInputId: string
     writeToClient: (chunk: string | PrintModeEvent) => void

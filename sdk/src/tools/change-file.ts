@@ -2,7 +2,7 @@ import path from 'path'
 
 import { fileExists } from '@codebuff/common/util/file'
 import { applyPatch } from 'diff'
-import z from 'zod/v4'
+import z from 'zod'
 
 
 import type { CodebuffToolOutput } from '@codebuff/common/tools/list'

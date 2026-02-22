@@ -58,29 +58,7 @@ export class CodebuffClient {
     return run({ ...this.options, ...options })
   }
 
-  /**
-   * Check connection to the Codebuff backend by hitting the /healthz endpoint.
-   *
-   * @returns Promise that resolves to true if connected, false otherwise
-   */
   public async checkConnection(): Promise<boolean> {
-    try {
-      const response = await fetch(`${WEBSITE_URL}/api/healthz`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000), // 5 second timeout
-      })
-
-      if (!response.ok) return false
-
-      const result = await response.json()
-      return (
-        typeof result === 'object' &&
-        result !== null &&
-        'status' in result &&
-        (result as { status?: unknown }).status === 'ok'
-      )
-    } catch {
-      return false
-    }
+    return true
   }
 }

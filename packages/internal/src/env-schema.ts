@@ -1,5 +1,5 @@
 import { clientEnvSchema, clientProcessEnv } from '@codebuff/common/env-schema'
-import z from 'zod/v4'
+import z from 'zod'
 
 export const serverEnvSchema = clientEnvSchema.extend({
   // LLM API keys

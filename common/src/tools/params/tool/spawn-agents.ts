@@ -1,4 +1,4 @@
-import z from 'zod/v4'
+import z from 'zod'
 
 import { jsonObjectSchema } from '../../../types/json'
 import { $getNativeToolCallExampleString, jsonToolResultSchema } from '../utils'

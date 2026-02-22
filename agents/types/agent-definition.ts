@@ -25,91 +25,11 @@ export interface AgentDefinition {
   /** Version string (if not provided, will default to '0.0.1' and be bumped on each publish) */
   version?: string
 
-  /** Publisher ID for the agent. Must be provided if you want to publish the agent. */
-  publisher?: string
-
   /** Human-readable name for the agent */
   displayName: string
 
-  /** AI model to use for this agent. Can be any model in OpenRouter: https://openrouter.ai/models */
+  /** AI model to use for this agent. */
   model: ModelName
-
-  /**
-   * https://openrouter.ai/docs/use-cases/reasoning-tokens
-   * One of `max_tokens` or `effort` is required.
-   * If `exclude` is true, reasoning will be removed from the response. Default is false.
-   */
-  reasoningOptions?: {
-    enabled?: boolean
-    exclude?: boolean
-  } & (
-    | {
-        max_tokens: number
-      }
-    | {
-        effort: 'high' | 'medium' | 'low' | 'minimal' | 'none'
-      }
-  )
-
-  /**
-   * Provider routing options for OpenRouter.
-   * Controls which providers to use and fallback behavior.
-   * See https://openrouter.ai/docs/features/provider-routing
-   */
-  providerOptions?: {
-    /**
-     * List of provider slugs to try in order (e.g. ["anthropic", "openai"])
-     */
-    order?: string[]
-    /**
-     * Whether to allow backup providers when primary is unavailable (default: true)
-     */
-    allow_fallbacks?: boolean
-    /**
-     * Only use providers that support all parameters in your request (default: false)
-     */
-    require_parameters?: boolean
-    /**
-     * Control whether to use providers that may store data
-     */
-    data_collection?: 'allow' | 'deny'
-    /**
-     * List of provider slugs to allow for this request
-     */
-    only?: string[]
-    /**
-     * List of provider slugs to skip for this request
-     */
-    ignore?: string[]
-    /**
-     * List of quantization levels to filter by (e.g. ["int4", "int8"])
-     */
-    quantizations?: Array<
-      | 'int4'
-      | 'int8'
-      | 'fp4'
-      | 'fp6'
-      | 'fp8'
-      | 'fp16'
-      | 'bf16'
-      | 'fp32'
-      | 'unknown'
-    >
-    /**
-     * Sort providers by price, throughput, or latency
-     */
-    sort?: 'price' | 'throughput' | 'latency'
-    /**
-     * Maximum pricing you want to pay for this request
-     */
-    max_price?: {
-      prompt?: number | string
-      completion?: number | string
-      image?: number | string
-      audio?: number | string
-      request?: number | string
-    }
-  }
 
   // ============================================================================
   // Tools and Subagents
@@ -208,54 +128,7 @@ export interface AgentDefinition {
   // Handle Steps
   // ============================================================================
 
-  /** Programmatically step the agent forward and run tools.
-   *
-   * You can either yield:
-   * - A tool call object with toolName and input properties.
-   * - 'STEP' to run agent's model and generate one assistant message.
-   * - 'STEP_ALL' to run the agent's model until it uses the end_turn tool or stops includes no tool calls in a message.
-   *
-   * Or use 'return' to end the turn.
-   *
-   * Example 1:
-   * function* handleSteps({ agentState, prompt, params, logger }) {
-   *   logger.info('Starting file read process')
-   *   const { toolResult } = yield {
-   *     toolName: 'read_files',
-   *     input: { paths: ['file1.txt', 'file2.txt'] }
-   *   }
-   *   yield 'STEP_ALL'
-   *
-   *   // Optionally do a post-processing step here...
-   *   logger.info('Files read successfully, setting output')
-   *   yield {
-   *     toolName: 'set_output',
-   *     input: {
-   *       output: 'The files were read successfully.',
-   *     },
-   *   }
-   * }
-   *
-   * Example 2:
-   * handleSteps: function* ({ agentState, prompt, params, logger }) {
-   *   while (true) {
-   *     logger.debug('Spawning thinker agent')
-   *     yield {
-   *       toolName: 'spawn_agents',
-   *       input: {
-   *         agents: [
-   *         {
-   *           agent_type: 'thinker',
-   *           prompt: 'Think deeply about the user request',
-   *         },
-   *       ],
-   *     },
-   *   }
-   *   const { stepsComplete } = yield 'STEP'
-   *   if (stepsComplete) break
-   * }
-   * }
-   */
+  /** Programmatically step the agent forward and run tools. */
   handleSteps?: (context: AgentStepContext) => Generator<
     ToolCall | 'STEP' | 'STEP_ALL' | StepText | GenerateN,
     void,
@@ -293,8 +166,7 @@ export interface AgentState {
   >
 
   /**
-   * The token count from the Anthropic API.
-   * This is updated on every agent step via the /api/v1/token-count endpoint.
+   * The token count.
    */
   contextTokenCount: number
 }
@@ -358,64 +230,10 @@ export type AgentTools = 'spawn_agents'
 export type OutputTools = 'set_output'
 
 // ============================================================================
-// Available Models (see: https://openrouter.ai/models)
+// Available Models
 // ============================================================================
 
-/**
- * AI models available for agents. Pick from our selection of recommended models or choose any model in OpenRouter.
- *
- * See available models at https://openrouter.ai/models
- */
-export type ModelName =
-  // Recommended Models
-
-  // OpenAI
-  | 'openai/gpt-5.1'
-  | 'openai/gpt-5.1-chat'
-  | 'openai/gpt-5-mini'
-  | 'openai/gpt-5-nano'
-
-  // Anthropic
-  | 'anthropic/claude-sonnet-4.5'
-  | 'anthropic/claude-opus-4.1'
-
-  // Gemini
-  | 'google/gemini-2.5-pro'
-  | 'google/gemini-2.5-flash'
-  | 'google/gemini-2.5-flash-lite'
-  | 'google/gemini-2.5-flash-preview-09-2025'
-  | 'google/gemini-2.5-flash-lite-preview-09-2025'
-
-  // X-AI
-  | 'x-ai/grok-4-07-09'
-  | 'x-ai/grok-4-fast'
-  | 'x-ai/grok-code-fast-1'
-
-  // Qwen
-  | 'qwen/qwen3-max'
-  | 'qwen/qwen3-coder-plus'
-  | 'qwen/qwen3-coder'
-  | 'qwen/qwen3-coder:nitro'
-  | 'qwen/qwen3-coder-flash'
-  | 'qwen/qwen3-235b-a22b-2507'
-  | 'qwen/qwen3-235b-a22b-2507:nitro'
-  | 'qwen/qwen3-235b-a22b-thinking-2507'
-  | 'qwen/qwen3-235b-a22b-thinking-2507:nitro'
-  | 'qwen/qwen3-30b-a3b'
-  | 'qwen/qwen3-30b-a3b:nitro'
-
-  // DeepSeek
-  | 'deepseek/deepseek-chat-v3-0324'
-  | 'deepseek/deepseek-chat-v3-0324:nitro'
-  | 'deepseek/deepseek-r1-0528'
-  | 'deepseek/deepseek-r1-0528:nitro'
-
-  // Other open source models
-  | 'moonshotai/kimi-k2'
-  | 'moonshotai/kimi-k2:nitro'
-  | 'z-ai/glm-4.6'
-  | 'z-ai/glm-4.6:nitro'
-  | (string & {})
+export type ModelName = 'deepseek-coder'
 
 import type { ToolName, GetToolParams } from './tools'
 import type {

@@ -1,15 +1,10 @@
-import { publisher } from '../constants'
 import {
   PLACEHOLDER,
   type SecretAgentDefinition,
 } from '../types/secret-agent-definition'
 
-import type { Model } from '@codebuff/common/old-constants'
-
-export const createReviewer = (
-  model: Model,
-): Omit<SecretAgentDefinition, 'id'> => ({
-  model,
+export const createReviewer = (): Omit<SecretAgentDefinition, 'id'> => ({
+  model: 'deepseek-coder',
   displayName: 'Nit Pick Nick',
   spawnerPrompt:
     'Reviews file changes and responds with critical feedback. Use this after making any significant change to the codebase; otherwise, no need to use this agent for minor changes since it takes a second.',
@@ -56,15 +51,14 @@ Before providing your review, use <think></think> tags to think through the code
 
 Be extremely concise.`,
 
-  handleSteps: function* ({ agentState, params }) {
+  handleSteps: function* () {
     yield 'STEP'
   },
 })
 
 const definition: SecretAgentDefinition = {
   id: 'code-reviewer',
-  publisher,
-  ...createReviewer('anthropic/claude-opus-4.5'),
+  ...createReviewer(),
 }
 
 export default definition

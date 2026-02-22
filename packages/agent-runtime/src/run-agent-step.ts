@@ -4,7 +4,7 @@ import { TOOLS_WHICH_WONT_FORCE_NEXT_STEP } from '@codebuff/common/tools/constan
 import { buildArray } from '@codebuff/common/util/array'
 import { getErrorObject, isAbortError } from '@codebuff/common/util/error'
 import { systemMessage, userMessage } from '@codebuff/common/util/messages'
-import { APICallError, type ToolSet } from 'ai'
+
 import { cloneDeep, mapValues } from 'lodash'
 
 import { callTokenCountAPI } from './llm-api/codebuff-web-api'
@@ -230,14 +230,14 @@ export const runAgentStep = async (
     ...expireMessages(agentState.messageHistory, 'agentStep'),
 
     stepPrompt &&
-      userMessage({
-        content: stepPrompt,
-        tags: ['STEP_PROMPT'],
+    userMessage({
+      content: stepPrompt,
+      tags: ['STEP_PROMPT'],
 
-        // James: Deprecate the below, only use tags, which are not prescriptive.
-        timeToLive: 'agentStep' as const,
-        keepDuringTruncation: true,
-      }),
+      // James: Deprecate the below, only use tags, which are not prescriptive.
+      timeToLive: 'agentStep' as const,
+      keepDuringTruncation: true,
+    }),
   )
 
   agentState.messageHistory = agentMessagesUntruncated
@@ -459,7 +459,7 @@ export async function loopAgentSteps(
     localAgentTemplates: Record<string, AgentTemplate>
     logger: Logger
     parentSystemPrompt?: string
-    parentTools?: ToolSet
+    parentTools?: any
     prompt: string | undefined
     signal: AbortSignal
     spawnParams: Record<string, any> | undefined
@@ -629,27 +629,27 @@ export async function loopAgentSteps(
   const agentTools = useParentTools
     ? {}
     : await buildAgentToolSet({
-        ...params,
-        spawnableAgents: agentTemplate.spawnableAgents,
-        agentTemplates: localAgentTemplates,
-      })
+      ...params,
+      spawnableAgents: agentTemplate.spawnableAgents,
+      agentTemplates: localAgentTemplates,
+    })
 
   const tools = useParentTools
     ? parentTools
     : await getToolSet({
       toolNames: agentTemplate.toolNames,
-        additionalToolDefinitions: async () => {
-          if (!cachedAdditionalToolDefinitions) {
-            cachedAdditionalToolDefinitions = await additionalToolDefinitions({
-              ...params,
-              agentTemplate,
-            })
-          }
-          return cachedAdditionalToolDefinitions
-        },
-        agentTools,
-        skills: fileContext.skills ?? {},
-      })
+      additionalToolDefinitions: async () => {
+        if (!cachedAdditionalToolDefinitions) {
+          cachedAdditionalToolDefinitions = await additionalToolDefinitions({
+            ...params,
+            agentTemplate,
+          })
+        }
+        return cachedAdditionalToolDefinitions
+      },
+      agentTools,
+      skills: fileContext.skills ?? {},
+    })
 
   const hasUserMessage = Boolean(
     prompt ||
@@ -672,25 +672,25 @@ export async function loopAgentSteps(
         keepDuringTruncation: true,
       },
       prompt &&
-        prompt in additionalSystemPrompts &&
-        userMessage(
-          withSystemInstructionTags(
-            additionalSystemPrompts[
-              prompt as keyof typeof additionalSystemPrompts
-            ],
-          ),
+      prompt in additionalSystemPrompts &&
+      userMessage(
+        withSystemInstructionTags(
+          additionalSystemPrompts[
+          prompt as keyof typeof additionalSystemPrompts
+          ],
         ),
+      ),
       ,
     ],
 
     instructionsPrompt &&
-      userMessage({
-        content: instructionsPrompt,
-        tags: ['INSTRUCTIONS_PROMPT'],
+    userMessage({
+      content: instructionsPrompt,
+      tags: ['INSTRUCTIONS_PROMPT'],
 
-        // James: Deprecate the below, only use tags, which are not prescriptive.
-        keepLastTags: ['INSTRUCTIONS_PROMPT'],
-      }),
+      // James: Deprecate the below, only use tags, which are not prescriptive.
+      keepLastTags: ['INSTRUCTIONS_PROMPT'],
+    }),
   )
 
   // Convert tools to a serializable format for context-pruner token counting
@@ -754,9 +754,9 @@ export async function loopAgentSteps(
       const messagesWithStepPrompt = buildArray(
         ...currentAgentState.messageHistory,
         stepPrompt &&
-          userMessage({
-            content: stepPrompt,
-          }),
+        userMessage({
+          content: stepPrompt,
+        }),
       )
 
       // Check context token count via Anthropic API
@@ -971,15 +971,11 @@ export async function loopAgentSteps(
     )
 
     let errorMessage = ''
-    if (error instanceof APICallError) {
-      errorMessage = `${error.message}`
-    } else {
-      // Extract clean error message (just the message, not name:message format)
-      errorMessage =
-        error instanceof Error
-          ? error.message + (error.stack ? `\n\n${error.stack}` : '')
-          : String(error)
-    }
+    // Extract clean error message (just the message, not name:message format)
+    errorMessage =
+      error instanceof Error
+        ? error.message + (error.stack ? `\n\n${error.stack}` : '')
+        : String(error)
 
     const statusCode = (error as { statusCode?: number }).statusCode
 

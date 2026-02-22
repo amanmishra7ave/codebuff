@@ -4,7 +4,7 @@ import * as schema from '@codebuff/internal/db/schema'
 import { env } from '@codebuff/internal/env'
 import { and, eq, gt, or, isNull } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import { logger } from '@/util/logger'
 

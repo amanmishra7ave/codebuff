@@ -28,7 +28,7 @@ import type {
   Subgoal,
 } from '@codebuff/common/types/session-state'
 import type { ProjectFileContext } from '@codebuff/common/util/file'
-import type { ToolSet } from 'ai'
+
 
 /**
  * Common context params needed for spawning subagents.
@@ -395,7 +395,7 @@ export async function executeSubagent(
     {
       agentTemplate: AgentTemplate
       parentAgentState: AgentState
-      parentTools?: ToolSet
+      parentTools?: any
       onResponseChunk: (chunk: string | PrintModeEvent) => void
       isOnlyChild?: boolean
       ancestorRunIds: string[]

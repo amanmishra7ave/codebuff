@@ -74,72 +74,21 @@ export async function validateAgents(
 
   // Simple logger implementation for common validation functions
   const logger = {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
+    debug: () => { },
+    info: () => { },
+    warn: () => { },
+    error: () => { },
   }
 
   let validationErrors: DynamicAgentValidationError[] = []
 
-  if (options?.remote) {
-    // Remote validation: call the web API
-    // Use provided websiteUrl or fall back to the default from environment
-    const websiteUrl = options.websiteUrl || WEBSITE_URL
+  // Always perform local validation in local-only mode
+  const result = validateAgentsCommon({
+    agentTemplates,
+    logger,
+  })
 
-    try {
-      const response = await fetch(`${websiteUrl}/api/agents/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ agentDefinitions: definitions }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        const errorMessage =
-          (errorData as any).error ||
-          `HTTP ${response.status}: ${response.statusText}`
-
-        return {
-          success: false,
-          validationErrors: [
-            {
-              id: 'network_error',
-              message: `Failed to validate via API: ${errorMessage}`,
-            },
-          ],
-          errorCount: 1,
-        }
-      }
-
-      const data = await response.json()
-      validationErrors = data.validationErrors || []
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error)
-
-      return {
-        success: false,
-        validationErrors: [
-          {
-            id: 'network_error',
-            message: `Failed to connect to validation API: ${errorMessage}`,
-          },
-        ],
-        errorCount: 1,
-      }
-    }
-  } else {
-    // Local validation: use common package validation logic
-    const result = validateAgentsCommon({
-      agentTemplates,
-      logger,
-    })
-
-    validationErrors = result.validationErrors
-  }
+  validationErrors = result.validationErrors
 
   // Transform validation errors to the SDK format
   const transformedErrors = validationErrors.map((error) => ({

@@ -1,5 +1,5 @@
 /* forked from https://github.com/OpenRouterTeam/ai-sdk-provider/tree/b23f2d580dc0688e5af1124e68c0e98b892e58fb/src/schemas */
-import z from 'zod/v4'
+import z from 'zod'
 
 export enum ReasoningDetailType {
   Summary = 'reasoning.summary',

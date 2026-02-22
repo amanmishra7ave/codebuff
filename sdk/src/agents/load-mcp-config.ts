@@ -4,7 +4,7 @@ import os from 'os'
 import path from 'path'
 
 import { mcpConfigSchema } from '@codebuff/common/types/mcp'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import type { MCPConfig } from '@codebuff/common/types/mcp'
 

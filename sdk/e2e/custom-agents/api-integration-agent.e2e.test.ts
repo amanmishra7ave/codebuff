@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, beforeAll } from 'bun:test'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import { CodebuffClient, getCustomToolDefinition } from '../../src'
 import {

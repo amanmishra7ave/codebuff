@@ -1,6 +1,6 @@
 import { jsonToolResult } from '@codebuff/common/util/messages'
 import { removeUndefinedProps } from '@codebuff/common/util/object'
-import z from 'zod/v4'
+import z from 'zod'
 
 import { getAgentTemplate } from '../../../templates/agent-registry'
 

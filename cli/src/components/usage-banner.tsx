@@ -1,4 +1,3 @@
-import { isClaudeOAuthValid } from '@codebuff/sdk'
 import open from 'open'
 import React, { useEffect } from 'react'
 
@@ -31,13 +30,13 @@ const formatRenewalDate = (dateStr: string | null): string => {
   const isToday = resetDate.toDateString() === today.toDateString()
   return isToday
     ? resetDate.toLocaleString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-      })
+      hour: 'numeric',
+      minute: '2-digit',
+    })
     : resetDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      })
+      month: 'short',
+      day: 'numeric',
+    })
 }
 
 export const UsageBanner = ({ showTime }: { showTime: number }) => {
@@ -45,22 +44,15 @@ export const UsageBanner = ({ showTime }: { showTime: number }) => {
   const setInputMode = useChatStore((state) => state.setInputMode)
 
   // Check if Claude OAuth is connected
-  const isClaudeConnected = isClaudeOAuthValid()
+  const isClaudeConnected = false
 
   // Fetch Claude quota data if connected
-  const { data: claudeQuota, isLoading: isClaudeLoading } = useClaudeQuotaQuery({
-    enabled: isClaudeConnected,
-    refetchInterval: 30 * 1000, // Refresh every 30 seconds when banner is open
-  })
+  const { data: claudeQuota, isLoading: isClaudeLoading } = useClaudeQuotaQuery()
 
   const {
     data: apiData,
     isLoading,
-    isFetching,
-  } = useUsageQuery({
-    enabled: true,
-    refetchInterval: USAGE_POLL_INTERVAL,
-  })
+  } = useUsageQuery()
 
   // Get cached data for immediate display
   const cachedUsageData = getActivityQueryData<{
@@ -82,7 +74,7 @@ export const UsageBanner = ({ showTime }: { showTime: number }) => {
   const theme = useTheme()
 
   const activeData = apiData || cachedUsageData
-  const isLoadingData = isLoading || isFetching
+  const isLoadingData = isLoading
 
   // Show loading state immediately when banner is opened but data isn't ready
   if (!activeData) {
@@ -96,8 +88,6 @@ export const UsageBanner = ({ showTime }: { showTime: number }) => {
   }
 
   const colorLevel = getBannerColorLevel(activeData.remainingBalance)
-  const adCredits = activeData.balanceBreakdown?.ad
-  const renewalDate = activeData.next_quota_reset ? formatRenewalDate(activeData.next_quota_reset) : null
 
   return (
     <BottomBanner
@@ -125,15 +115,9 @@ export const UsageBanner = ({ showTime }: { showTime: number }) => {
                   {activeData.remainingBalance?.toLocaleString() ?? '?'}
                 </text>
               )}
-              {adCredits != null && adCredits > 0 && (
-                <text style={{ fg: theme.muted }}>{`(${adCredits} from ads)`}</text>
-              )}
-              {renewalDate && (
-                <>
-                  <text style={{ fg: theme.muted }}>· Renews:</text>
-                  <text style={{ fg: theme.foreground }}>{renewalDate}</text>
-                </>
-              )}
+              <text style={{ fg: theme.foreground }}>
+                {activeData.remainingBalance?.toLocaleString() ?? '?'}
+              </text>
             </box>
             {/* See more link */}
             <text style={{ fg: theme.muted }}>↗ See more on codebuff.com</text>

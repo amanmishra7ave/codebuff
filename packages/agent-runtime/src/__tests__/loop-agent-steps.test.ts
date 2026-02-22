@@ -20,7 +20,7 @@ import {
   mock,
   spyOn,
 } from 'bun:test'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import { loopAgentSteps } from '../run-agent-step'
 import { clearAgentGeneratorCache } from '../run-programmatic-step'

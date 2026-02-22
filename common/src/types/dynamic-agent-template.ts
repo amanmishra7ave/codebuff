@@ -1,9 +1,9 @@
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import { ALLOWED_MODEL_PREFIXES, models } from '../old-constants'
 import { mcpConfigSchema } from './mcp'
 
-import type { JSONSchema } from 'zod/v4/core'
+import type { JSONSchema } from 'zod/core'
 
 // Filter models to only include those that begin with allowed prefixes
 const filteredModels = Object.values(models).filter((model) =>

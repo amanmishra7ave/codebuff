@@ -1,6 +1,6 @@
 import { buildArray } from '@codebuff/common/util/array'
 import { schemaToJsonStr } from '@codebuff/common/util/zod-schema'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import { getAgentTemplate } from './agent-registry'
 
@@ -8,7 +8,6 @@ import type { AgentTemplate } from '@codebuff/common/types/agent-template'
 import type { Logger } from '@codebuff/common/types/contracts/logger'
 import type { ParamsExcluding } from '@codebuff/common/types/function-params'
 import type { AgentTemplateType } from '@codebuff/common/types/session-state'
-import type { ToolSet } from 'ai'
 
 function ensureJsonSchemaCompatible(schema: z.ZodType): z.ZodType {
   try {
@@ -55,7 +54,7 @@ export function buildAgentToolInputSchema(
     .object(schemaFields)
     .describe(
       agentTemplate.spawnerPrompt ||
-        `Spawn the ${agentTemplate.displayName} agent`,
+      `Spawn the ${agentTemplate.displayName} agent`,
     )
 }
 
@@ -73,10 +72,10 @@ export async function buildAgentToolSet(
     typeof getAgentTemplate,
     'agentId' | 'localAgentTemplates'
   >,
-): Promise<ToolSet> {
+): Promise<Record<string, any>> {
   const { spawnableAgents, agentTemplates } = params
 
-  const toolSet: ToolSet = {}
+  const toolSet: Record<string, any> = {}
 
   for (const agentType of spawnableAgents) {
     const agentTemplate = await getAgentTemplate({
@@ -121,17 +120,17 @@ params: None`
   const { inputSchema } = agentTemplate
   const inputSchemaStr = inputSchema
     ? [
-        `prompt: ${schemaToJsonStr(inputSchema.prompt)}`,
-        `params: ${schemaToJsonStr(inputSchema.params)}`,
-      ].join('\n')
+      `prompt: ${schemaToJsonStr(inputSchema.prompt)}`,
+      `params: ${schemaToJsonStr(inputSchema.params)}`,
+    ].join('\n')
     : ['prompt: None', 'params: None'].join('\n')
 
   return buildArray(
     `- ${agentType}: ${agentTemplate.spawnerPrompt}`,
     agentTemplate.includeMessageHistory &&
-      'This agent can see the current message history.',
+    'This agent can see the current message history.',
     agentTemplate.inheritParentSystemPrompt &&
-      "This agent inherits the parent's system prompt for prompt caching.",
+    "This agent inherits the parent's system prompt for prompt caching.",
     inputSchemaStr,
   ).join('\n')
 }

@@ -1,6 +1,4 @@
-import { publisher } from '../constants'
-
-import type { AgentDefinition } from '../types/agent-definition'
+import { publisher } from '../constants' import type { AgentDefinition } from '../types/agent-definition'
 
 const definition: AgentDefinition = {
   id: 'oss-model-coder',
@@ -49,7 +47,6 @@ You are an expert coding specialist, focused exclusively on code implementation,
 {CODEBUFF_FILE_TREE_PROMPT}
 
 {CODEBUFF_SYSTEM_INFO_PROMPT}
-
 {CODEBUFF_GIT_CHANGES_PROMPT}`,
   instructionsPrompt: `You are the coding specialist. Your job is to implement, modify, or debug code based on the request.
 

@@ -1,12 +1,10 @@
-import { publisher } from '../constants'
 
 import type { ToolCall } from '../types/agent-definition'
 import type { SecretAgentDefinition } from '../types/secret-agent-definition'
 
 const definition: SecretAgentDefinition = {
   id: 'researcher-web',
-  publisher,
-  model: 'x-ai/grok-4.1-fast',
+    model: 'deepseek-coder',
   displayName: 'Weeb',
   spawnerPrompt: `Browses the web to find relevant information.`,
   inputSchema: {

@@ -1,4 +1,4 @@
-import z from 'zod/v4'
+import z from 'zod'
 
 import { BrowserResponseSchema } from '../../../browser-actions'
 import { $getNativeToolCallExampleString, jsonToolResultSchema } from '../utils'

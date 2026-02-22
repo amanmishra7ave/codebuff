@@ -1,25 +1,8 @@
-
-import { publisher } from '../constants'
-
 import type { AgentDefinition } from '../types/agent-definition'
 
-export const createCodeEditor = (options: {
-  model: 'gpt-5' | 'opus' | 'glm'
-}): Omit<AgentDefinition, 'id'> => {
-  const { model } = options
+export const createCodeEditor = (): Omit<AgentDefinition, 'id'> => {
   return {
-    publisher,
-    model:
-      options.model === 'gpt-5'
-        ? 'openai/gpt-5.1'
-        : options.model === 'glm'
-          ? 'z-ai/glm-4.7'
-          : 'anthropic/claude-opus-4.5',
-    ...(model === 'glm' && {
-      reasoningOptions: {
-        effort: 'high',
-      },
-    }),
+    model: 'deepseek-coder',
     displayName: 'Code Editor',
     spawnerPrompt:
       "Expert code editor that implements code changes based on the user's request. Do not specify an input prompt for this agent; it inherits the context of the entire conversation with the user. Make sure to read any files intended to be edited before spawning this agent as it cannot read files on its own.",
@@ -65,9 +48,7 @@ OR for new files or major rewrites:
 }
 </codebuff_tool_call>
 
-${model === 'gpt-5' || model === 'glm'
-        ? ''
-        : `Before you start writing your implementation, you should use <think> tags to think about the best way to implement the changes.
+Before you start writing your implementation, you should use <think> tags to think about the best way to implement the changes.
 
 You can also use <think> tags interspersed between tool calls to think about the best way to implement the changes.
 
@@ -93,8 +74,7 @@ You can also use <think> tags interspersed between tool calls to think about the
 [ Third tool call to implement the feature ]
 </codebuff_tool_call>
 
-</example>`
-      }
+</example>
 
 Your implementation should:
 - Be complete and comprehensive
@@ -133,7 +113,7 @@ Write out your complete implementation now, formatting all changes as tool calls
 }
 
 const definition = {
-  ...createCodeEditor({ model: 'opus' }),
+  ...createCodeEditor(),
   id: 'editor',
 }
 export default definition

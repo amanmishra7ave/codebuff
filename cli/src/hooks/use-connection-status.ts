@@ -60,23 +60,23 @@ export const useConnectionStatus = (
     }
 
     const checkConnection = async () => {
-      const client = await getCodebuffClient()
-      if (!client) {
-        if (isMounted) {
-          setIsConnected(false)
-          previousConnectedRef.current = false
-          consecutiveSuccesses = 0
-          currentInterval = HEALTH_CHECK_CONFIG.INITIAL_INTERVAL
-          logger.debug(
-            { interval: currentInterval },
-            'Health check: No client, reset to initial interval',
-          )
-          scheduleNextCheck(currentInterval)
-        }
-        return
-      }
-
       try {
+        const client = await getCodebuffClient()
+        if (!client) {
+          if (isMounted) {
+            setIsConnected(false)
+            previousConnectedRef.current = false
+            consecutiveSuccesses = 0
+            currentInterval = HEALTH_CHECK_CONFIG.INITIAL_INTERVAL
+            logger.debug(
+              { interval: currentInterval },
+              'Health check: No client, reset to initial interval',
+            )
+            scheduleNextCheck(currentInterval)
+          }
+          return
+        }
+
         const connected = await client.checkConnection()
         if (!isMounted) return
 

@@ -6,7 +6,7 @@ const definition: AgentDefinition = {
   ...commander,
   id: 'commander-lite',
   displayName: 'Commander Lite',
-  model: 'x-ai/grok-4.1-fast',
+  model: 'deepseek-coder',
 }
 
 export default definition

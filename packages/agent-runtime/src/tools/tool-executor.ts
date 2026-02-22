@@ -33,17 +33,17 @@ import type { Logger } from '@codebuff/common/types/contracts/logger'
 import type { ToolMessage } from '@codebuff/common/types/messages/codebuff-message'
 import type { ToolResultOutput } from '@codebuff/common/types/messages/content-part'
 import type { PrintModeEvent } from '@codebuff/common/types/print-mode'
-import type { AgentTemplateType , AgentState, Subgoal } from '@codebuff/common/types/session-state'
+import type { AgentTemplateType, AgentState, Subgoal } from '@codebuff/common/types/session-state'
 import type {
   CustomToolDefinitions,
   ProjectFileContext,
 } from '@codebuff/common/util/file'
-import type { ToolCallPart, ToolSet } from 'ai'
+
 
 export type CustomToolCall = {
   toolName: string
   input: Record<string, unknown>
-} & Omit<ToolCallPart, 'type'>
+} & any
 
 export type ToolCallError = {
   toolName?: string
@@ -116,7 +116,7 @@ export type ExecuteToolCallParams<T extends string = ToolName> = {
   runId: string
   signal: AbortSignal
   system: string
-  tools: ToolSet
+  tools: any
   toolCallId: string | undefined
   toolCalls: (CodebuffToolCall | CustomToolCall)[]
   toolResults: ToolMessage[]

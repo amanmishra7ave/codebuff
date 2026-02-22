@@ -1,6 +1,6 @@
 import { TEST_AGENT_RUNTIME_IMPL } from '@codebuff/common/testing/impl/agent-runtime'
 import { describe, test, expect, mock } from 'bun:test'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 import { buildAgentToolInputSchema, buildAgentToolSet } from '../templates/prompts'
 import { handleLookupAgentInfo } from '../tools/handlers/tool/lookup-agent-info'

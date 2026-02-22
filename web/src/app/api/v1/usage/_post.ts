@@ -1,7 +1,7 @@
 import { AnalyticsEvent } from '@codebuff/common/constants/analytics-events'
 import { INVALID_AUTH_TOKEN_MESSAGE } from '@codebuff/common/old-constants'
 import { NextResponse } from 'next/server'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 
 import type { TrackEventFn } from '@codebuff/common/types/contracts/analytics'

@@ -1,4 +1,4 @@
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 export const publishAgentsRequestSchema = z.object({
   data: z.record(z.string(), z.any()).array(),
